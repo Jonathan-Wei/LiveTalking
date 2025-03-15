@@ -12,10 +12,11 @@ Real time interactive streaming digital human， realize audio video synchronous
 - 2025.2.7 添加fish-speech tts
 - 2025.2.21 添加wav2lip256开源模型 感谢@不蠢不蠢
 - 2025.3.2 添加腾讯语音合成服务
+- 2025.3.15 添加KokoroTTS语音合成服务，支持对接大模型知识库引擎Dify
 
 ## Features
 1. 支持多种数字人模型: ernerf、musetalk、wav2lip、Ultralight-Digital-Human
-2. 支持声音克隆
+2. 支持声音克隆（KokoroTTS不支持）
 3. 支持数字人说话被打断
 4. 支持全身视频拼接
 5. 支持rtmp和webrtc
@@ -89,8 +90,8 @@ docker run --gpus all -it --network=host --rm registry.cn-beijing.aliyuncs.com/c
 - [x] MuseTalk
 - [x] Wav2Lip
 - [x] Ultralight-Digital-Human
-- [ ] 支持KokoroTTS
-- [ ] 支持对接知识库引擎Dify
+- [x] 支持KokoroTTS
+- [x] 支持对接知识库引擎Dify
 
 ---
 如果本项目对你有帮助，帮忙点个star。也欢迎感兴趣的朋友一起来完善该项目.

@@ -36,7 +36,6 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.rtcrtpsender import RTCRtpSender
 from webrtc import HumanPlayer
 from basereal import BaseReal
-from llm import llm_response
 
 import argparse
 import random
@@ -142,7 +141,12 @@ async def human(request):
     if params['type']=='echo':
         nerfreals[sessionid].put_msg_txt(params['text'])
     elif params['type']=='chat':
-        res=await asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'],nerfreals[sessionid])                         
+        if opt.chat_engine=='llm':
+            from llm import llm_response
+            res=await asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'],nerfreals[sessionid])
+        elif opt.chat_engine=='lke':
+            from lke import lke_response
+            res=await asyncio.get_event_loop().run_in_executor(None, lke_response, opt, params['text'],nerfreals[sessionid])
         #nerfreals[sessionid].put_msg_txt(res)
 
     return web.Response(
@@ -378,7 +382,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--customvideo_config', type=str, default='')
 
-    parser.add_argument('--tts', type=str, default='edgetts') #xtts gpt-sovits cosyvoice
+    parser.add_argument('--tts', type=str, default='edgetts') #xtts gpt-sovits cosyvoice kokoro-tts
     parser.add_argument('--REF_FILE', type=str, default=None)
     parser.add_argument('--REF_TEXT', type=str, default=None)
     parser.add_argument('--TTS_SERVER', type=str, default='http://127.0.0.1:9880') # http://localhost:9000
@@ -392,6 +396,13 @@ if __name__ == '__main__':
 
     parser.add_argument('--max_session', type=int, default=1)  #multi session count
     parser.add_argument('--listenport', type=int, default=8010)
+
+    # 对话引擎
+    parser.add_argument('--chat_engine', type=str, default='llm') # llm lke
+    # 大模型知识引擎
+    parser.add_argument('--lke', type=str, default='dify')  # dify fastgpt maxkb
+    parser.add_argument('--LKE_SERVER', type=str, default=None) # https://cloud.dify.ai
+    parser.add_argument('--LKE_API_KEY', type=str, default=None) # 知识库API KEY
 
     opt = parser.parse_args()
     #app.config.from_object(opt)
@@ -423,7 +434,7 @@ if __name__ == '__main__':
         #     nerfreals.append(nerfreal)
     elif opt.model == 'wav2lip':
         from lipreal import LipReal,load_model,load_avatar,warm_up
-        logger.info(opt)
+        logger.info(f"wav2lip ops is: {opt}")
         model = load_model("./models/wav2lip.pth")
         avatar = load_avatar(opt.avatar_id)
         warm_up(opt.batch_size,model,256)

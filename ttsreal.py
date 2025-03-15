@@ -135,7 +135,7 @@ class EdgeTTS(BaseTTS):
     
     async def __main(self,voicename: str, text: str):
         try:
-            communicate = edge_tts.Communicate(text, voicename)
+            communicate = edge_tts.Communicate(text, voicename,proxy="http://127.0.0.1:7890")
 
             #with open(OUTPUT_FILE, "wb") as file:
             first = True
@@ -590,3 +590,107 @@ class XTTS(BaseTTS):
                     idx += self.chunk
         eventpoint={'status':'end','text':text,'msgenvent':textevent}
         self.parent.put_audio_frame(np.zeros(self.chunk,np.float32),eventpoint)  
+
+###########################################################################################
+class KokoroTTS(BaseTTS):
+    def __init__(self, opt, parent):
+        super().__init__(opt,parent)
+        self.voice = "zf_xiaoxiao"
+        self.speed = 1
+
+    def txt_to_audio(self,msg):
+        text,textevent = msg
+        t = time.time()  # 添加这一行来初始化时间变量
+        logger.info(f'-------kokoro-tts time:{time.time()-t:.4f}s')
+        self.stream_tts(
+            self.kokoro_voice(
+                text,
+                self.voice,
+                self.speed,
+                self.opt.TTS_SERVER
+            ),
+            msg
+        )
+
+    def kokoro_voice(self, text, voice, speed, server_url) -> Iterator[bytes]:
+        start = time.perf_counter()
+        req = {
+            "input": text,
+            "voice": voice,
+            "response_format": "pcm",
+            "download_format": "mp3",
+            "stream": True,
+            "speed": speed,
+            "return_download_link": True
+        }
+        try:
+            res = requests.post(
+                f"{server_url}/v1/audio/speech",
+                json=req,
+                stream=True,
+                headers={
+                    "content-type": "application/json",
+                },
+            )
+            end = time.perf_counter()
+            logger.info(f"kokoro_voice Time to make POST: {end-start}s")
+
+            if res.status_code != 200:
+                logger.error("Error:%s", res.text)
+                return
+                
+            first = True
+        
+            for chunk in res.iter_content(chunk_size=9600): # 24K*20ms*2
+                if first:
+                    end = time.perf_counter()
+                    logger.info(f"kokoro_voice Time to first chunk: {end-start}s")
+                    first = False
+                if chunk and self.state==State.RUNNING:
+                    yield chunk
+        except Exception as e:
+            logger.exception('kokorotts')
+
+    def stream_tts(self,audio_stream,msg):
+        text,textevent = msg
+        first = True
+        for chunk in audio_stream:
+            if chunk is not None and len(chunk)>0:          
+                # 使用pydub解码MP3数据
+                try:
+                    from pydub import AudioSegment
+                    import io
+                    
+                    # 将二进制数据加载为AudioSegment对象
+                    # PCM格式需要指定采样率、通道数和采样宽度
+                    audio = AudioSegment.from_raw(
+                        io.BytesIO(chunk), 
+                        sample_width=2,  # 16位音频，2字节
+                        frame_rate=24000,  # 采样率
+                        channels=1  # 单声道
+                    )
+                    
+                    # 转换为numpy数组
+                    stream = np.array(audio.get_array_of_samples()).astype(np.float32) / 32767
+                    
+                    # 重采样到目标采样率
+                    if audio.frame_rate != self.sample_rate:
+                        stream = resampy.resample(x=stream, sr_orig=audio.frame_rate, sr_new=self.sample_rate)
+                    
+                    streamlen = stream.shape[0]
+                    idx=0
+                    while streamlen >= self.chunk:
+                        eventpoint=None
+                        if first:
+                            eventpoint={'status':'start','text':text,'msgenvent':textevent}
+                            first = False
+                        self.parent.put_audio_frame(stream[idx:idx+self.chunk],eventpoint)
+                        streamlen -= self.chunk
+                        idx += self.chunk
+                except Exception as e:
+                    logger.exception("Error processing audio chunk: %s", e)
+        eventpoint={'status':'end','text':text,'msgenvent':textevent}
+        self.parent.put_audio_frame(np.zeros(self.chunk,np.float32),eventpoint)
+
+
+    

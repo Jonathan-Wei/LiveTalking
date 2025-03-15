@@ -252,92 +252,148 @@ class LightReal(BaseReal):
 
    
     def process_frames(self,quit_event,loop=None,audio_track=None,video_track=None):
+        """
+        处理音视频帧的线程函数
         
+        Args:
+            quit_event: 退出事件，用于控制线程结束
+            loop: 异步事件循环
+            audio_track: 音频轨道对象
+            video_track: 视频轨道对象
+        """
         while not quit_event.is_set():
             try:
+                # 从结果队列获取一帧数据，包括生成的面部图像、索引和对应的音频帧
                 res_frame,idx,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
             except queue.Empty:
                 continue
-            if audio_frames[0][1]!=0 and audio_frames[1][1]!=0: #全为静音数据，只需要取fullimg
-                self.speaking = False
-                audiotype = audio_frames[0][1]
-                if self.custom_index.get(audiotype) is not None: #有自定义视频
+                
+            # 判断是否为静音帧
+            if audio_frames[0][1]!=0 and audio_frames[1][1]!=0: # 全为静音数据，只需要取fullimg
+                self.speaking = False  # 标记为非说话状态
+                audiotype = audio_frames[0][1]  # 获取音频类型
+                
+                # 检查是否有自定义视频
+                if self.custom_index.get(audiotype) is not None: # 有自定义视频
+                    # 计算镜像索引并获取对应帧
                     mirindex = self.mirror_index(len(self.custom_img_cycle[audiotype]),self.custom_index[audiotype])
                     combine_frame = self.custom_img_cycle[audiotype][mirindex]
                     self.custom_index[audiotype] += 1
+                    # 注释掉的代码处理非循环播放的情况
                     # if not self.custom_opt[audiotype].loop and self.custom_index[audiotype]>=len(self.custom_img_cycle[audiotype]):
-                    #     self.curr_state = 1  #当前视频不循环播放，切换到静音状态
+                    #     self.curr_state = 1  # 当前视频不循环播放，切换到静音状态
                 else:
+                    # 使用默认的全身图像
                     combine_frame = self.frame_list_cycle[idx]
-                    #combine_frame = self.imagecache.get_img(idx)
+                    # combine_frame = self.imagecache.get_img(idx)
             else:
-                self.speaking = True
-                bbox = self.coord_list_cycle[idx]
-                combine_frame = copy.deepcopy(self.frame_list_cycle[idx])
-                x1, y1, x2, y2 = bbox
+                # 非静音帧，需要合成口型动画
+                self.speaking = True  # 标记为说话状态
+                bbox = self.coord_list_cycle[idx]  # 获取面部区域坐标
+                combine_frame = copy.deepcopy(self.frame_list_cycle[idx])  # 复制完整帧
+                x1, y1, x2, y2 = bbox  # 解析面部区域坐标
 
-                crop_img = self.face_list_cycle[idx]
-                crop_img_ori = crop_img.copy()
-                #res_frame = np.array(res_frame, dtype=np.uint8)
+                crop_img = self.face_list_cycle[idx]  # 获取对应的面部图像
+                crop_img_ori = crop_img.copy()  # 复制面部图像
+                # res_frame = np.array(res_frame, dtype=np.uint8)
                 try:
+                    # 将生成的口型动画合成到面部图像中
                     crop_img_ori[4:164, 4:164] = res_frame.astype(np.uint8)
+                    # 调整面部图像大小以匹配目标区域
                     crop_img_ori = cv2.resize(crop_img_ori, (x2-x1,y2-y1))
                 except:
                     continue
+                # 将处理后的面部图像放回完整帧中
                 combine_frame[y1:y2, x1:x2] = crop_img_ori
-                #print('blending time:',time.perf_counter()-t)
+                # print('blending time:',time.perf_counter()-t)
 
+            # 创建视频帧对象并发送到视频轨道
             new_frame = VideoFrame.from_ndarray(combine_frame, format="bgr24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put((new_frame,None)), loop)
+            # 记录视频数据
             self.record_video_data(combine_frame)
 
+            # 处理音频帧
             for audio_frame in audio_frames:
                 frame,type_,eventpoint = audio_frame
+                # 将浮点音频数据转换为16位整数
                 frame = (frame * 32767).astype(np.int16)
+                # 创建音频帧对象
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
                 new_frame.sample_rate=16000
+                # 注释掉的队列大小控制代码
                 # if audio_track._queue.qsize()>10:
                 #     time.sleep(0.1)
+                # 发送音频帧到音频轨道
                 asyncio.run_coroutine_threadsafe(audio_track._queue.put((new_frame,eventpoint)), loop)
+                # 记录音频数据
                 self.record_audio_data(frame)
-                #self.notify(eventpoint)
+                # self.notify(eventpoint)
         logger.info('lightreal process_frames thread stop') 
             
     def render(self,quit_event,loop=None,audio_track=None,video_track=None):
-        #if self.opt.asr:
+        """
+        主渲染函数，启动所有处理线程并控制主循环
+        
+        Args:
+            quit_event: 退出事件，用于控制线程结束
+            loop: 异步事件循环
+            audio_track: 音频轨道对象
+            video_track: 视频轨道对象
+        """
+        # 注释掉的ASR预热代码
+        # if self.opt.asr:
         #     self.asr.warm_up()
 
+        # 启动TTS渲染
         self.tts.render(quit_event)
+        # 初始化自定义索引
         self.init_customindex()
+        
+        # 启动帧处理线程
         process_thread = Thread(target=self.process_frames, args=(quit_event,loop,audio_track,video_track))
         process_thread.start()
-        Thread(target=inference, args=(quit_event,self.batch_size,self.face_list_cycle,self.asr.feat_queue,self.asr.output_queue,self.res_frame_queue,
-                                           self.model,)).start()  #mp.Process
         
-
-        #self.render_event.set() #start infer process render
+        # 启动推理线程
+        Thread(target=inference, args=(quit_event,self.batch_size,self.face_list_cycle,self.asr.feat_queue,self.asr.output_queue,self.res_frame_queue,
+                                           self.model,)).start()  # mp.Process
+        
+        # 注释掉的渲染事件设置代码
+        # self.render_event.set() # start infer process render
+        
+        # 性能计数器初始化
         count=0
         totaltime=0
         _starttime=time.perf_counter()
-        #_totalframe=0
+        # _totalframe=0
+        
+        # 主循环
         while not quit_event.is_set(): 
-            # update texture every frame
-            # audio stream thread...
+            # 更新每一帧的纹理
+            # 音频流线程...
             t = time.perf_counter()
+            # 运行ASR步骤
             self.asr.run_step()
 
+            # 视频队列大小控制，防止队列过大
+            # 注释掉的旧代码
             # if video_track._queue.qsize()>=2*self.opt.batch_size:
             #     print('sleep qsize=',video_track._queue.qsize())
             #     time.sleep(0.04*video_track._queue.qsize()*0.8)
+            
+            # 当视频队列大于5时，适当延迟以控制速度
             if video_track._queue.qsize()>=5:
                 logger.debug('sleep qsize=%d',video_track._queue.qsize())
                 time.sleep(0.04*video_track._queue.qsize()*0.8)
                 
-            # delay = _starttime+_totalframe*0.04-time.perf_counter() #40ms
+            # 注释掉的帧率控制代码
+            # delay = _starttime+_totalframe*0.04-time.perf_counter() # 40ms
             # if delay > 0:
             #     time.sleep(delay)
-        #self.render_event.clear() #end infer process render
+            
+        # 注释掉的渲染事件清除代码
+        # self.render_event.clear() # end infer process render
         logger.info('lightreal thread stop')
             
 

@@ -35,7 +35,7 @@ import soundfile as sf
 import av
 from fractions import Fraction
 
-from ttsreal import EdgeTTS,VoitsTTS,XTTS,CosyVoiceTTS,FishTTS,TencentTTS
+from ttsreal import EdgeTTS,VoitsTTS,XTTS,CosyVoiceTTS,FishTTS,TencentTTS,KokoroTTS
 from logger import logger
 
 from tqdm import tqdm
@@ -54,6 +54,8 @@ class BaseReal:
         self.chunk = self.sample_rate // opt.fps # 320 samples per chunk (20ms * 16000 / 1000)
         self.sessionid = self.opt.sessionid
 
+        logger.info(f"----tts model is : {opt.tts}")
+
         if opt.tts == "edgetts":
             self.tts = EdgeTTS(opt,self)
         elif opt.tts == "gpt-sovits":
@@ -66,6 +68,8 @@ class BaseReal:
             self.tts = FishTTS(opt,self)
         elif opt.tts == "tencent":
             self.tts = TencentTTS(opt,self)
+        elif self.opt.tts == "kokoro-tts":
+            self.tts = KokoroTTS(opt,self)
         
         self.speaking = False
 
