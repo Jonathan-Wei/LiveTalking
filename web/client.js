@@ -69,6 +69,11 @@ function start() {
 
 function stop() {
     document.getElementById('stop').style.display = 'none';
+    document.getElementById('start').style.display = 'inline';
+
+    // 清除视频源
+    document.getElementById('video').srcObject = null;
+    document.getElementById('audio').srcObject = null;
 
     // close peer connection
     setTimeout(() => {
