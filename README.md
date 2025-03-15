@@ -89,6 +89,8 @@ docker run --gpus all -it --network=host --rm registry.cn-beijing.aliyuncs.com/c
 - [x] MuseTalk
 - [x] Wav2Lip
 - [x] Ultralight-Digital-Human
+- [ ] 支持KokoroTTS
+- [ ] 支持对接知识库引擎Dify
 
 ---
 如果本项目对你有帮助，帮忙点个star。也欢迎感兴趣的朋友一起来完善该项目.
