@@ -6,6 +6,8 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from basereal import BaseReal
 from logger import logger
+# 使用同步的WebSocket消息发送API
+from websocket_api import send_message_sync
 
 # 创建全局 Session 对象，用于复用 HTTP 连接
 session = requests.Session()
@@ -32,6 +34,10 @@ def lke_response(opt, message, nerfreal: BaseReal):
     """
     start = time.perf_counter()
     
+    # 记录sessionId信息，用于调试
+    logger.info(f"lke_response - opt.sessionid: {opt.sessionid}, nerfreal.sessionid: {nerfreal.sessionid}")
+    # 从opt中获取dialogId
+    dialogId = opt.dialogId
     # Dify API的基础URL
     base_url = opt.LKE_SERVER
     if not base_url:
@@ -93,6 +99,7 @@ def lke_response(opt, message, nerfreal: BaseReal):
                             
                         msg = data.get("answer", "")
                         lastpos = 0
+                        send_message_sync(0, msg, dialogId,port=opt.listenport)
                         
                         # 按标点符号分段输出
                         for i, char in enumerate(msg):
@@ -100,8 +107,11 @@ def lke_response(opt, message, nerfreal: BaseReal):
                                 result = result + msg[lastpos:i+1]
                                 lastpos = i+1
                                 if len(result) > 10:
-                                    logger.info(result)
                                     nerfreal.put_msg_txt(result)
+                                    # 通过WebSocket API推送消息到前端
+                                    # 使用同步函数发送消息，避免跨线程调用异步函数
+                                    # 使用固定的session_id为0，确保与前端WebSocket连接一致
+                                    # send_message_sync(0, result, dialogId,port=opt.listenport)
                                     result = ""
                         
                         result = result + msg[lastpos:]
@@ -111,6 +121,10 @@ def lke_response(opt, message, nerfreal: BaseReal):
                         # 处理最后剩余的文本
                         if result:
                             nerfreal.put_msg_txt(result)
+                            # 通过WebSocket API推送最后的消息
+                            # 使用同步函数发送消息，避免跨线程调用异步函数
+                            # 使用固定的session_id为0，确保与前端WebSocket连接一致
+                            # send_message_sync(0, result, dialogId, port=opt.listenport)
                             result = ""
                         
                         # 记录使用情况
@@ -131,6 +145,10 @@ def lke_response(opt, message, nerfreal: BaseReal):
     # 确保最后的文本也被发送
     if result:
         nerfreal.put_msg_txt(result)
+        # 通过WebSocket API推送最后的消息
+        # 使用同步函数发送消息，避免跨线程调用异步函数
+        # 使用固定的session_id为0，确保与前端WebSocket连接一致
+        # send_message_sync(0, result, dialogId,port=opt.listenport)
 
 # 注意：不要在这里调用 session.close()，保持连接池开放以供后续请求使用
 # 如果应用程序退出前需要清理资源，可以在适当的地方调用 session.close()

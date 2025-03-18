@@ -135,24 +135,38 @@ async def human(request):
     params = await request.json()
 
     sessionid = params.get('sessionid',0)
+    dialogId = params.get('dialogId',0)
+    if sessionid not in nerfreals:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "data":"Invalid session ID"}
+            ),
+        )
+        
     if params.get('interrupt'):
         nerfreals[sessionid].flush_talk()
 
+    opt.dialogId = dialogId
+
+    response_data = "ok"
     if params['type']=='echo':
         nerfreals[sessionid].put_msg_txt(params['text'])
     elif params['type']=='chat':
         if opt.chat_engine=='llm':
             from llm import llm_response
-            res=await asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'],nerfreals[sessionid])
+            response_data = await asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'],nerfreals[sessionid])
         elif opt.chat_engine=='lke':
             from lke import lke_response
-            res=await asyncio.get_event_loop().run_in_executor(None, lke_response, opt, params['text'],nerfreals[sessionid])
-        #nerfreals[sessionid].put_msg_txt(res)
+            response_data = await asyncio.get_event_loop().run_in_executor(None, lke_response, opt, params['text'],nerfreals[sessionid])
+            
+        #nerfreals[sessionid].put_msg_txt(response_data)
+        logger.info('res=%s',response_data)
 
     return web.Response(
         content_type="application/json",
         text=json.dumps(
-            {"code": 0, "data":"ok"}
+            {"code": 0, "data":response_data}
         ),
     )
 
@@ -160,6 +174,15 @@ async def humanaudio(request):
     try:
         form= await request.post()
         sessionid = int(form.get('sessionid',0))
+        
+        if sessionid not in nerfreals:
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg":"Invalid session ID"}
+                ),
+            )
+            
         fileobj = form["file"]
         filename=fileobj.filename
         filebytes=fileobj.file.read()
@@ -182,7 +205,15 @@ async def humanaudio(request):
 async def set_audiotype(request):
     params = await request.json()
 
-    sessionid = params.get('sessionid',0)    
+    sessionid = params.get('sessionid',0)
+    if sessionid not in nerfreals:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "data":"Invalid session ID"}
+            ),
+        )
+        
     nerfreals[sessionid].set_curr_state(params['audiotype'],params['reinit'])
 
     return web.Response(
@@ -196,6 +227,14 @@ async def record(request):
     params = await request.json()
 
     sessionid = params.get('sessionid',0)
+    if sessionid not in nerfreals:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "data":"Invalid session ID"}
+            ),
+        )
+        
     if params['type']=='start_record':
         # nerfreals[sessionid].put_msg_txt(params['text'])
         nerfreals[sessionid].start_recording()
@@ -212,6 +251,14 @@ async def is_speaking(request):
     params = await request.json()
 
     sessionid = params.get('sessionid',0)
+    if sessionid not in nerfreals:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "data": False, "message": "Invalid session ID"}
+            ),
+        )
+    
     return web.Response(
         content_type="application/json",
         text=json.dumps(
@@ -464,6 +511,19 @@ if __name__ == '__main__':
     appasync.router.add_post("/set_audiotype", set_audiotype)
     appasync.router.add_post("/record", record)
     appasync.router.add_post("/is_speaking", is_speaking)
+    
+    # 添加WebSocket路由
+    from websocket_routes import websocket_handler
+    appasync.router.add_get("/ws", websocket_handler)
+    
+    # 添加WebSocket API路由
+    from websocket_api_routes import websocket_send_handler
+    appasync.router.add_post("/api/websocket/send", websocket_send_handler)
+    
+    # 启动WebSocket心跳服务
+    from websocket_heartbeat import start_heartbeat_service
+    # 心跳服务将在事件循环启动后创建
+    
     appasync.router.add_static('/',path='web')
 
     # Configure default CORS settings.
@@ -496,6 +556,11 @@ if __name__ == '__main__':
                 if k!=0:
                     push_url = opt.push_url+str(k)
                 loop.run_until_complete(run(push_url,k))
+        
+        # 在事件循环中启动WebSocket心跳服务
+        from websocket_heartbeat import start_heartbeat_service
+        loop.create_task(start_heartbeat_service())
+        
         loop.run_forever()    
     #Thread(target=run_server, args=(web.AppRunner(appasync),)).start()
     run_server(web.AppRunner(appasync))

@@ -4,6 +4,7 @@ from basereal import BaseReal
 from logger import logger
 
 def llm_response(message,nerfreal:BaseReal):
+    response_str=""
     start = time.perf_counter()
     from openai import OpenAI
     client = OpenAI(
@@ -35,6 +36,7 @@ def llm_response(message,nerfreal:BaseReal):
             lastpos=0
             #msglist = re.split('[,.!;:，。！?]',msg)
             for i, char in enumerate(msg):
+                response_str = response_str+char
                 if char in ",.!;:，。！？：；" :
                     result = result+msg[lastpos:i+1]
                     lastpos = i+1
@@ -45,4 +47,4 @@ def llm_response(message,nerfreal:BaseReal):
             result = result+msg[lastpos:]
     end = time.perf_counter()
     logger.info(f"llm Time to last chunk: {end-start}s")
-    nerfreal.put_msg_txt(result)    
+    nerfreal.put_msg_txt(result)

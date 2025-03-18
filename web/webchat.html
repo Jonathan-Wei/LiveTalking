@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI助理</title>
+    <style>
+    body {
+        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+    }
+
+    .header {
+        height: 44px;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        border-bottom: 1px solid #eee;
+        position: relative;
+    }
+
+    .back-button {
+        font-size: 18px;
+        color: #333;
+        text-decoration: none;
+    }
+
+    .header-title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 18px;
+        font-weight: 500;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 44px);
+    }
+
+    .content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+
+    .card {
+        flex: 1;
+        background-color: transparent;
+        /* border-radius: 10px; */
+        /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); */
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .card-image {
+        width: 100%;
+        height: 100%; /* 修改为100%以填充整个card容器 */
+        background-color: #f0f0f0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-image img, .card-image video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .feature-tag {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        background-color: #4CD964;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .card-content {
+        background-color: transparent; /* 完全透明背景 */
+        padding: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        pointer-events: none; /* 允许点击穿透到下层元素 */
+    }
+
+    .card-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+
+    .card-description {
+        font-size: 14px;
+        color: #666;
+        line-height: 1.5;
+        flex: 1;
+    }
+
+    .feature-list {
+        margin-top: 15px;
+    }
+
+    .feature-item {
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .input-container {
+        height: 60px;
+        background-color: #fff;
+        border-top: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .input-box {
+        flex: 1;
+        height: 40px;
+        border: 1px solid #5CE8CC;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        margin-right: 10px;
+        position: relative;
+        box-sizing: border-box;
+        min-width: 0; /* 防止flex子项溢出 */
+    }
+
+    .input-box input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 16px;
+        width: 100%;
+        min-width: 0; /* 防止在某些浏览器中输入框溢出 */
+        box-sizing: border-box;
+    }
+
+    .voice-button {
+        width: 24px;
+        height: 24px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .voice-button.active {
+        color: #4CD964;
+    }
+
+    .send-button {
+        width: 40px;
+        height: 40px;
+        background-color: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    
+    .input-mode-switch {
+        display: flex;
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .input-mode {
+        padding: 5px 15px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    .input-mode.active {
+        background-color: #4CD964;
+        color: white;
+    }
+
+    .interaction-tabs {
+        display: flex;
+        margin-bottom: 10px;
+    }
+
+    .tab {
+        padding: 10px 20px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        cursor: pointer;
+    }
+
+    .tab.active {
+        background-color: #fff;
+        border-bottom: none;
+    }
+
+    .interaction-panel {
+        display: none;
+    }
+
+    .interaction-panel.active {
+        display: block;
+    }
+
+    #asr-status {
+        margin-top: 10px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .voice-recognition-container {
+        position: fixed;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        border-radius: 10px;
+        padding: 15px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        width: 120px;
+        height: 120px;
+    }
+
+    .voice-wave {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #4CD964;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .voice-text {
+        color: white;
+        font-size: 14px;
+    }
+
+    .hidden {
+        display: none;
+    }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="#" class="back-button">&#8592;</a>
+    <div class="header-title">AI助理</div>
+</div>
+
+<div class="container">
+    <div class="content">
+        <input type="hidden" id="sessionid" value="0">
+        <div class="card">
+            <div class="card-image">
+                <audio id="audio" autoplay="true"></audio>
+                <video id="video" autoplay playsinline muted></video>
+            </div>
+            <div class="card-content">
+                <div class="chat-container" id="chat-container">
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <form class="form-inline" id="echo-form" style="width: 100%; display: flex;" onsubmit="return false;">
+            <div class="input-box">
+                <button type="button" class="voice-button" id="voice-button">
+                    <img src="images/voice.png" width="16" height="16" alt="语音">
+                </button>
+                <input type="text" id="text-input" placeholder="请输入...">
+                <!-- 移除输入模式切换标签 -->
+                <button type="button" class="send-button" id="send-button">
+                    <img src="images/send.png" width="16" height="16" alt="发送">
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="voice-recognition-container" id="voice-recognition" style="display: none;">
+    <div class="voice-wave"></div>
+    <div class="voice-text">正在聆听...</div>
+</div>
+
+<style>
+.voice-recognition-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.voice-wave {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: #4CD964;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+.voice-text {
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* 聊天容器样式 */
+.chat-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%; /* 高度占视频的1/3 */
+    background-color: transparent; /* 完全透明背景 */
+    overflow-y: auto;
+    padding: 10px;
+    box-sizing: border-box;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: auto; /* 确保聊天容器可以接收点击事件 */
+}
+
+.chat-message {
+    margin-bottom: 8px;
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 15px;
+    word-break: break-word;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: #4CD964;
+    color: white;
+}
+
+.ai-message {
+    align-self: flex-start;
+    background-color: rgba(255, 255, 255, 0.4);
+    color: #333;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 20px rgba(76, 217, 100, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(76, 217, 100, 0);
+    }
+}
+</style>
+
+<input type="hidden" id="sessionid" value="0">
+<script type="text/javascript"  src="client.js"></script>
+<!-- 移除对外部client.js的引用 -->
+<script type="text/javascript" src="http://cdn.sockjs.org/sockjs-0.3.4.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="ws-client.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+        // 语音识别相关变量
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognitionInterval = null;
+        let currentInputMode = 'text'; // 默认为文本输入模式
+        
+        console.log('脚本开始加载...');
+        // 初始化页面
+        // WebSocket客户端实例
+        let wsClient = null;
+        
+        function initPage() {
+            console.log('初始化页面函数执行...');
+            console.log('init....... ');
+            
+            // 设置发送按钮点击事件
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+            
+            // 设置语音按钮点击事件
+            document.getElementById('voice-button').addEventListener('click', function() {
+                if (isRecording) {
+                    stopVoiceRecognition();
+                } else {
+                    switchInputMode('voice');
+                }
+            });
+
+            // 确保在页面完全加载后再调用load函数
+            setTimeout(function() {
+                console.log('延迟调用load()函数...');
+                console.log('DOM准备状态:', document.readyState);
+                console.log('video元素是否存在:', !!document.getElementById('video'));
+                console.log('audio元素是否存在:', !!document.getElementById('audio'));
+                // 增加延迟时间，确保DOM和资源完全加载
+                load();
+                
+                // 初始化WebSocket连接
+                const sessionId = document.getElementById('sessionid').value;
+                wsClient = new WebSocketClient(sessionId);
+                wsClient.connect();
+                
+                console.log('WebSocket客户端已初始化，会话ID:', sessionId);
+            }, 1000);
+        }
+
+        initPage();
+        
+        // 切换输入模式
+        // 切换输入模式
+        function switchInputMode(mode) {
+            // 如果当前已经是目标模式，不做任何操作
+            if (currentInputMode === mode) return;
+            
+            currentInputMode = mode;
+            
+            if (mode === 'voice') {
+                // 切换到语音模式前先检查麦克风权限
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(() => {
+                        // 麦克风权限获取成功，切换到语音模式
+                        document.getElementById('text-input').style.display = 'none';
+                        document.getElementById('voice-button').classList.add('active');
+                        document.getElementById('voice-button').style.color = '#4CD964';
+                        startVoiceRecognition();
+                    })
+                    .catch(error => {
+                        // 麦克风权限获取失败，保持文本模式
+                        console.error("获取麦克风权限失败:", error);
+                        alert("无法访问麦克风，请检查权限设置");
+                        currentInputMode = 'text'; // 重置为文本模式
+                    });
+            } else {
+                // 切换到文本模式
+                document.getElementById('text-input').style.display = 'block';
+                document.getElementById('voice-button').classList.remove('active');
+                document.getElementById('voice-button').style.color = '';
+                // 如果正在录音，停止录音
+                if (isRecording) {
+                    stopVoiceRecognition();
+                }
+            }
+        }
+        
+        // 发送消息函数
+        function sendMessage() {
+            const textInput = document.getElementById('text-input');
+            const message = textInput.value.trim();
+            document.getElementById('video').muted = false;
+            
+            console.log('sendMessage 函数执行...', message);
+            
+            // 生成一个对话ID
+            const dialogId = Date.now();
+
+            if (message !== '') {
+                // 添加用户消息到聊天容器
+                wsClient.addMessageToChat(message, dialogId);
+                
+                // 发送消息到服务器
+                fetch('/human', {
+                    body: JSON.stringify({
+                        text: message,
+                        type: 'chat',
+                        dialogId: dialogId,
+                        sessionid: parseInt(document.getElementById('sessionid').value),
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+                
+                // 清空输入框
+                textInput.value = '';
+            }
+        }
+        // 开始语音识别
+        async function startVoiceRecognition() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await sendAudioToServer(audioBlob);
+                    audioChunks = [];
+                };
+                
+                // 开始录音
+                mediaRecorder.start();
+                isRecording = true;
+                
+                // 每3秒发送一次音频数据进行识别
+                recognitionInterval = setInterval(() => {
+                    if (mediaRecorder && isRecording) {
+                        mediaRecorder.stop();
+                        mediaRecorder.start();
+                    }
+                }, 500);
+                
+                // 显示语音识别界面
+                document.getElementById('voice-recognition').style.display = 'flex';
+                document.getElementById('voice-button').classList.add('active');
+                
+            } catch (error) {
+                console.error("获取麦克风权限失败:", error);
+                alert("无法访问麦克风，请检查权限设置");
+                
+                // 修复：当麦克风访问失败时，切回文本模式
+                switchInputMode('text');
+                
+                // 重置语音按钮状态
+                document.getElementById('voice-button').classList.remove('active');
+                document.getElementById('voice-button').style.color = '';
+            }
+        }
+        
+        // 停止语音识别
+        function stopVoiceRecognition() {
+            if (mediaRecorder && isRecording) {
+                clearInterval(recognitionInterval);
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                mediaRecorder = null;
+                isRecording = false;
+                
+                // 隐藏语音识别界面
+                document.getElementById('voice-recognition').style.display = 'none';
+                document.getElementById('voice-button').classList.remove('active');
+            }
+        }
+        
+        // 发送音频到服务器进行识别
+        async function sendAudioToServer(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob);
+                formData.append('sessionid', document.getElementById('sessionid').value);
+                
+                const response = await fetch('/asr', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.text) {
+                        // 将识别结果填入输入框
+                        document.getElementById('text-input').value = result.text;
+                        
+                        // 如果识别到有效内容，可以自动发送
+                        if (result.text.trim() !== "") {
+                            // 这里可以添加自动发送的逻辑
+                            // sendMessage(result.text);
+                        }
+                    }
+                } else {
+                    console.error("ASR 识别失败:", await response.text());
+                }
+            } catch (error) {
+                console.error("发送音频数据失败:", error);
+            }
+        }
+    });
+</script>
+</body>
+</html>
