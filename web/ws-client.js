@@ -20,6 +20,9 @@ class WebSocketClient {
         this.lastHeartbeatTime = 0;
         this.connectionStartTime = 0;
         this.connectionId = Math.random().toString(36).substring(2, 10); // 生成唯一连接ID用于日志
+        
+        // 设置页面卸载事件处理
+        this.setupPageUnloadHandler();
     }
 
     /**
@@ -186,13 +189,13 @@ class WebSocketClient {
                         const responseTime = Date.now() - heartbeatData.timestamp;
                         console.warn(`心跳响应超时 (${(responseTime/1000).toFixed(1)}秒)，连接可能已断开`);
                         
-                        // 如果超过8秒没有收到响应，认为连接已断开（缩短超时时间）
-                        if (Date.now() - this.lastHeartbeatTime > 8000) {
+                        // 如果超过15秒没有收到响应，认为连接已断开（增加超时时间，避免频繁断开重连）
+                        if (Date.now() - this.lastHeartbeatTime > 15000) {
                             console.error('心跳无响应，尝试重新连接');
                             this.disconnect();
                             setTimeout(() => this.connect(), 1000);
                         }
-                    }, 8000);
+                    }, 3000);
                 } catch (error) {
                     console.error('发送心跳消息失败:', error);
                     // 发送失败也可能是连接问题，尝试重连
@@ -257,6 +260,41 @@ class WebSocketClient {
 
         // 滚动到底部
         chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    /**
+     * 设置页面卸载事件处理
+     * 在页面刷新或关闭前正确关闭WebSocket连接
+     */
+    setupPageUnloadHandler() {
+        const handleUnload = () => {
+            console.log('页面即将卸载，正在关闭WebSocket连接...');
+            // 使用同步方式关闭连接，确保在页面卸载前完成
+            if (this.socket && this.isConnected) {
+                // 停止心跳检测
+                this.stopHeartbeat();
+                
+                // 关闭WebSocket连接
+                // 使用同步方式关闭，不使用reconnect机制
+                this.socket.onclose = null; // 移除onclose处理器，避免触发重连
+                this.socket.close(1000, "页面卸载");
+                this.socket = null;
+                this.isConnected = false;
+                
+                console.log('WebSocket连接已在页面卸载前关闭');
+            }
+        };
+        
+        // 监听页面卸载事件
+        window.addEventListener('beforeunload', handleUnload);
+        window.addEventListener('unload', handleUnload);
+    }
+    
+    /**
+     * 通知用户连接已断开
+     */
+    notifyConnectionLost() {
+        console.warn('WebSocket连接已断开，请刷新页面重试');
+        // 可以在这里添加UI通知
     }
 }
 

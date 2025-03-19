@@ -26,7 +26,7 @@ async def websocket_handler(request):
     
     # 创建WebSocket响应
     try:
-        ws = web.WebSocketResponse(heartbeat=30)  # 启用心跳，30秒间隔
+        ws = web.WebSocketResponse(heartbeat=5)  # 启用心跳，5秒间隔，确保在客户端8秒超时前响应
         await ws.prepare(request)
         logger.info(f"WebSocket握手成功 [客户端: {remote_addr}] [会话ID: {session_id}]")
     except Exception as e:
@@ -55,10 +55,17 @@ async def websocket_handler(request):
                     
                     # 处理心跳消息
                     if msg_type == 'heartbeat':
+                        # 更新连接状态
+                        ws_id = id(ws)
+                        if session_id in connection_stats and ws_id in connection_stats[session_id]:
+                            connection_stats[session_id][ws_id]["last_active_time"] = time.time()
+                        
+                        # 立即回复心跳响应
                         await ws.send_json({
                             "type": "heartbeat_response",
                             "timestamp": data.get('timestamp')
                         })
+                        logger.debug(f"心跳响应已发送 [会话ID: {session_id}] [客户端: {ws._req.remote if hasattr(ws, '_req') else '未知'}]")
                 except json.JSONDecodeError:
                     logger.warning(f"收到无效的JSON消息 [会话ID: {session_id}] [内容: {msg.data[:50]}...]")
             elif msg.type == web.WSMsgType.ERROR:

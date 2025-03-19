@@ -401,7 +401,6 @@
 }
 </style>
 
-<input type="hidden" id="sessionid" value="0">
 <script type="text/javascript"  src="client.js"></script>
 <!-- 移除对外部client.js的引用 -->
 <script type="text/javascript" src="http://cdn.sockjs.org/sockjs-0.3.4.js"></script>
@@ -443,20 +442,22 @@
             console.log('DOM准备状态:', document.readyState);
             console.log('video元素是否存在:', !!document.getElementById('video'));
             console.log('audio元素是否存在:', !!document.getElementById('audio'));
-            // 增加延迟时间，确保DOM和资源完全加载
-            load();
-                
+            
             // 生成随机的sessionId
             const randomSessionId = Math.floor(Math.random() * 1000000);
             // 将sessionId存入input组件中
             document.getElementById('sessionid').value = randomSessionId;
-
+            console.log('randomSessionId:', randomSessionId);
             // 初始化WebSocket连接
             const sessionId = document.getElementById('sessionid').value;
+            console.log('sessionid:', sessionId);
             wsClient = new WebSocketClient(sessionId);
             wsClient.connect();
                 
             console.log('WebSocket客户端已初始化，会话ID:', sessionId);
+            
+            // 增加延迟时间，确保DOM和资源完全加载
+            load();
         }
 
         initPage();

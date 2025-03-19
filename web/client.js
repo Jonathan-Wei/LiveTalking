@@ -21,11 +21,14 @@ function negotiate() {
             }
         });
     }).then(() => {
+        var sessionId = document.getElementById('sessionid').value;
+        console.log('OFFER SESSIONID ...',sessionId);
         var offer = pc.localDescription;
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
                 type: offer.type,
+                sessionid: sessionId
             }),
             headers: {
                 'Content-Type': 'application/json'
@@ -35,7 +38,8 @@ function negotiate() {
     }).then((response) => {
         return response.json();
     }).then((answer) => {
-        document.getElementById('sessionid').value = answer.sessionid;
+        // 移除覆盖sessionid的代码，保留用户设置的值
+        // document.getElementById('sessionid').value = answer.sessionid;
          // 创建一个新的RTCSessionDescription对象，只包含sdp和type
          const sessionDescription = {
             sdp: answer.sdp,

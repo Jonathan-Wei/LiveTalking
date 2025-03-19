@@ -4,9 +4,9 @@ from logger import logger
 from websocket_manager import active_connections, connection_stats, unregister_websocket
 
 # 心跳超时时间（秒）
-HEARTBEAT_TIMEOUT = 50
+HEARTBEAT_TIMEOUT = 15
 # 心跳检查间隔（秒）
-HEARTBEAT_INTERVAL = 30
+HEARTBEAT_INTERVAL = 3
 
 async def send_heartbeat(ws, session_id):
     """

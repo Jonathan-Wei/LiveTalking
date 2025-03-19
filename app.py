@@ -87,8 +87,11 @@ async def offer(request):
     if len(nerfreals) >= opt.max_session:
         logger.info('reach max session')
         return -1
-    sessionid = randN(6) #len(nerfreals)
-    logger.info('sessionid=%d',sessionid)
+        
+    params = await request.json()
+    sessionid = params["sessionid"]
+    logger.info(f"offer sessionid")
+    logger.info(sessionid)
     nerfreals[sessionid] = None
     nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
     nerfreals[sessionid] = nerfreal
@@ -132,6 +135,8 @@ async def offer(request):
     )
 
 async def human(request):
+
+    logger.info("accept request ..................")
     params = await request.json()
 
     sessionid = params.get('sessionid',0)
