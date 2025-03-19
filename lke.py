@@ -34,6 +34,7 @@ def lke_response(opt, message, nerfreal: BaseReal):
     """
     start = time.perf_counter()
     
+    sessionId = opt.sessionid
     # 记录sessionId信息，用于调试
     logger.info(f"lke_response - opt.sessionid: {opt.sessionid}, nerfreal.sessionid: {nerfreal.sessionid}")
     # 从opt中获取dialogId
@@ -99,7 +100,7 @@ def lke_response(opt, message, nerfreal: BaseReal):
                             
                         msg = data.get("answer", "")
                         lastpos = 0
-                        send_message_sync(0, msg, dialogId,port=opt.listenport)
+                        send_message_sync(sessionId, msg, dialogId,port=opt.listenport)
                         
                         # 按标点符号分段输出
                         for i, char in enumerate(msg):

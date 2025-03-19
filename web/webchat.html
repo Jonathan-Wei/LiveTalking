@@ -439,21 +439,24 @@
             });
 
             // 确保在页面完全加载后再调用load函数
-            setTimeout(function() {
-                console.log('延迟调用load()函数...');
-                console.log('DOM准备状态:', document.readyState);
-                console.log('video元素是否存在:', !!document.getElementById('video'));
-                console.log('audio元素是否存在:', !!document.getElementById('audio'));
-                // 增加延迟时间，确保DOM和资源完全加载
-                load();
+            console.log('延迟调用load()函数...');
+            console.log('DOM准备状态:', document.readyState);
+            console.log('video元素是否存在:', !!document.getElementById('video'));
+            console.log('audio元素是否存在:', !!document.getElementById('audio'));
+            // 增加延迟时间，确保DOM和资源完全加载
+            load();
                 
-                // 初始化WebSocket连接
-                const sessionId = document.getElementById('sessionid').value;
-                wsClient = new WebSocketClient(sessionId);
-                wsClient.connect();
+            // 生成随机的sessionId
+            const randomSessionId = Math.floor(Math.random() * 1000000);
+            // 将sessionId存入input组件中
+            document.getElementById('sessionid').value = randomSessionId;
+
+            // 初始化WebSocket连接
+            const sessionId = document.getElementById('sessionid').value;
+            wsClient = new WebSocketClient(sessionId);
+            wsClient.connect();
                 
-                console.log('WebSocket客户端已初始化，会话ID:', sessionId);
-            }, 1000);
+            console.log('WebSocket客户端已初始化，会话ID:', sessionId);
         }
 
         initPage();
@@ -515,7 +518,7 @@
                         text: message,
                         type: 'chat',
                         dialogId: dialogId,
-                        sessionid: parseInt(document.getElementById('sessionid').value),
+                        sessionid: document.getElementById('sessionid').value,
                     }),
                     headers: {
                         'Content-Type': 'application/json'
