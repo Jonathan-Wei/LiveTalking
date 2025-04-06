@@ -17,7 +17,7 @@ function WebSocketConnectMethod( config ) { //定义socket连接方法类
 		var Uri = document.getElementById('wssip').value; //"wss://111.205.137.58:5821/wss/" //设置wss asr online接口地址 如 wss://X.X.X.X:port/wss/
 		if(Uri.match(/wss:\S*|ws:\S*/))
 		{
-			console.log("Uri"+Uri);
+			console.log("Uri:"+Uri);
 		}
 		else
 		{
@@ -55,10 +55,7 @@ function WebSocketConnectMethod( config ) { //定义socket连接方法类
  
 		if(speechSokt == undefined) return;
 		if ( speechSokt.readyState === 1 ) { // 0:CONNECTING, 1:OPEN, 2:CLOSING, 3:CLOSED
- 
 			speechSokt.send( oneData );
- 
-			
 		}
 	};
 	
@@ -73,7 +70,6 @@ function WebSocketConnectMethod( config ) { //定义socket连接方法类
 			"chunk_interval":10,
 			"itn":getUseITN(),
 			"mode":getAsrMode(),
-			
 		};
 		if(isfilemode)
 		{
@@ -109,7 +105,7 @@ function WebSocketConnectMethod( config ) { //定义socket连接方法类
 	
 	function onError( e ) {
  
-		info_div.innerHTML="连接"+e;
+		// info_div.innerHTML="连接"+e;
 		console.log(e);
 		stateHandle(2);
 		

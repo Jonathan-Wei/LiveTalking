@@ -1,6 +1,7 @@
 from aiohttp import web
 import json
-from websocket_manager import register_websocket, unregister_websocket
+import time
+from websocket_manager import register_websocket, unregister_websocket, connection_stats
 from logger import logger
 
 async def websocket_handler(request):

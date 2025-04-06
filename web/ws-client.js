@@ -154,7 +154,7 @@ class WebSocketClient {
         // 初始化最后心跳时间为当前时间
         this.lastHeartbeatTime = Date.now();
         
-        // 每20秒发送一次心跳（缩短间隔以提高可靠性）
+        // 每10秒发送一次心跳（确保在服务器15秒超时前发送）
         this.heartbeatInterval = setInterval(() => {
             if (this.isConnected && this.socket && this.socket.readyState === WebSocket.OPEN) {
                 try {

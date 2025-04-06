@@ -48,3 +48,4 @@ def llm_response(message,nerfreal:BaseReal):
     end = time.perf_counter()
     logger.info(f"llm Time to last chunk: {end-start}s")
     nerfreal.put_msg_txt(result)
+    return response_str

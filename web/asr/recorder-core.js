@@ -1122,7 +1122,7 @@ Recorder.prototype=initFn.prototype={
 		var This=this;
 		if(This.state){
 			This.state=2;
-			This.CLog("pause");
+			This.CLog("===================pause");
 			delete This._streamStore().Stream._call[This.id];
 		};
 	}
@@ -1131,7 +1131,7 @@ Recorder.prototype=initFn.prototype={
 		var This=this;
 		if(This.state){
 			This.state=1;
-			This.CLog("resume");
+			This.CLog("=======resume");
 			This.envResume();
 			
 			var stream=This._streamStore().Stream;

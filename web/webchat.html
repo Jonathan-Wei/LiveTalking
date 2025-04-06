@@ -155,7 +155,7 @@
         box-sizing: border-box;
     }
 
-    .voice-button {
+    .voice-button, .keyboard-button, .add-button {
         width: 24px;
         height: 24px;
         background-color: transparent;
@@ -164,10 +164,35 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 0;
     }
     
     .voice-button.active {
         color: #4CD964;
+    }
+    
+    /* 新的语音输入界面样式 */
+    .voice-input-container {
+        flex: 1;
+        height: 40px;
+        border: 1px solid #5CE8CC;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        margin-right: 10px;
+        position: relative;
+        box-sizing: border-box;
+    }
+    
+    .voice-text {
+        flex: 1;
+        text-align: center;
+        color: #333;
+        font-size: 16px;
+        font-weight: 500;
+        user-select: none;
+        touch-action: none; /* 防止触摸事件被浏览器默认行为干扰 */
     }
 
     .send-button {
@@ -234,39 +259,23 @@
         color: #666;
         font-size: 14px;
     }
-
     .voice-recognition-container {
         position: fixed;
-        bottom: 70px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.7);
-        border-radius: 10px;
-        padding: 15px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        width: 120px;
-        height: 120px;
-    }
-
-    .voice-wave {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: #4CD964;
+        bottom: 50px;
+        left: 0;
+        width: 100%;
+        height: 15%;
+        background-color: white;
         display: flex;
-        align-items: center;
+        flex-direction: column;
         justify-content: center;
-        margin-bottom: 10px;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+        box-sizing: border-box;
+        border-top-left-radius: 50%;
+        border-top-right-radius: 50%;
     }
-
-    .voice-text {
-        color: white;
-        font-size: 14px;
-    }
-
     .hidden {
         display: none;
     }
@@ -281,6 +290,11 @@
 
 <div class="container">
     <div class="content">
+        <input id="wssip" type="text" onchange="addresschange()" hidden  value="wss://www.funasr.com:10096/"/>
+        <input name="recoder_mode" hidden type="radio" value="mic" checked="true"/></label>
+        <label><input name="asr_mode" hidden type="radio" value="2pass" checked="true"/></label>
+        <textarea rows="3"  id="varHot" hidden  style=" width: 100%;height:100%" >阿里巴巴 20&#13;hello world 40</textarea>
+        <input name="use_itn" hidden type="radio" value="false" checked="true"/>
         <input type="hidden" id="sessionid" value="0">
         <div class="card">
             <div class="card-image">
@@ -289,7 +303,6 @@
             </div>
             <div class="card-content">
                 <div class="chat-container" id="chat-container">
-                    
                 </div>
             </div>
         </div>
@@ -297,53 +310,187 @@
 
     <div class="input-container">
         <form class="form-inline" id="echo-form" style="width: 100%; display: flex;" onsubmit="return false;">
-            <div class="input-box">
-                <button type="button" class="voice-button" id="voice-button">
+            <!-- 文本输入框 -->
+            <div class="input-box" id="text-input-box">
+                <button type="button" class="voice-button" id="switch-to-voice-button">
                     <img src="images/voice.png" width="16" height="16" alt="语音">
                 </button>
                 <input type="text" id="text-input" placeholder="请输入...">
-                <!-- 移除输入模式切换标签 -->
                 <button type="button" class="send-button" id="send-button">
                     <img src="images/send.png" width="16" height="16" alt="发送">
+                </button>
+            </div>
+            
+            <!-- 语音输入界面 -->
+            <div class="voice-input-container" id="voice-input-container" style="display: none;">
+                <button type="button" class="keyboard-button" id="switch-to-text-button">
+                    <img src="images/keyboard.png" width="16" height="16" alt="键盘">
+                </button>
+                <div class="voice-text" id="voice-text">按住  说话</div>
+                <button type="button" class="add-button" id="add-button">
+                    <img src="images/add.png" width="16" height="16" alt="添加">
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- 语音识别状态界面 -->
 <div class="voice-recognition-container" id="voice-recognition" style="display: none;">
-    <div class="voice-wave"></div>
-    <div class="voice-text">正在聆听...</div>
+    <div class="voice-text-status">松开发送 上滑取消</div>
+    <div class="swipe-cancel">  </div>
+    <div class="voice-wave">
+        <div class="voice-wave-container">
+            <div class="voice-wave-bar" id="bar1"></div>
+            <div class="voice-wave-bar" id="bar2"></div>
+            <div class="voice-wave-bar" id="bar3"></div>
+            <div class="voice-wave-bar" id="bar4"></div>
+            <div class="voice-wave-bar" id="bar5"></div>
+            <div class="voice-wave-bar" id="bar6"></div>
+            <div class="voice-wave-bar" id="bar7"></div>
+            <div class="voice-wave-bar" id="bar8"></div>
+            <div class="voice-wave-bar" id="bar9"></div>
+            <div class="voice-wave-bar" id="bar10"></div>
+            <div class="voice-wave-bar" id="bar11"></div>
+            <div class="voice-wave-bar" id="bar12"></div>
+            <div class="voice-wave-bar" id="bar13"></div>
+            <div class="voice-wave-bar" id="bar14"></div>
+            <div class="voice-wave-bar" id="bar15"></div>
+            <div class="voice-wave-bar" id="bar16"></div>
+            <div class="voice-wave-bar" id="bar17"></div>
+            <div class="voice-wave-bar" id="bar18"></div>
+            <div class="voice-wave-bar" id="bar19"></div>
+            <div class="voice-wave-bar" id="bar20"></div>
+            <div class="voice-wave-bar" id="bar21"></div>
+            <div class="voice-wave-bar" id="bar22"></div>
+            <div class="voice-wave-bar" id="bar23"></div>
+            <div class="voice-wave-bar" id="bar24"></div>
+            <div class="voice-wave-bar" id="bar25"></div>
+            <div class="voice-wave-bar" id="bar26"></div>
+            <div class="voice-wave-bar" id="bar27"></div>
+            <div class="voice-wave-bar" id="bar28"></div>
+            <div class="voice-wave-bar" id="bar29"></div>
+            <div class="voice-wave-bar" id="bar30"></div>
+            <div class="voice-wave-bar" id="bar31"></div>
+            <div class="voice-wave-bar" id="bar32"></div>
+            <div class="voice-wave-bar" id="bar33"></div>
+            <div class="voice-wave-bar" id="bar34"></div>
+            <div class="voice-wave-bar" id="bar35"></div>
+            <div class="voice-wave-bar" id="bar36"></div>
+            <div class="voice-wave-bar" id="bar37"></div>
+            <div class="voice-wave-bar" id="bar38"></div>
+            <div class="voice-wave-bar" id="bar39"></div>
+            <div class="voice-wave-bar" id="bar40"></div>
+            <div class="voice-wave-bar" id="bar41"></div>
+            <div class="voice-wave-bar" id="bar42"></div>
+            <div class="voice-wave-bar" id="bar43"></div>
+            <div class="voice-wave-bar" id="bar44"></div>
+        </div>
+    </div>
+    <!-- 取消发送状态 -->
+    <div class="cancel-send-container" id="cancel-send-container" style="display: none;">
+        <div class="voice-text-status">松手取消发送</div>
+        <div class="trash-icon">
+            <span>&#128465;</span> <!-- 垃圾桶图标 -->
+        </div>
+    </div>
 </div>
 
 <style>
-.voice-recognition-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
+
 
 .voice-wave {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+    width: 90%; /* 减小宽度 */
+    height: 60px; /* 减小高度，保持比例 */
     background-color: #4CD964;
-    margin-bottom: 20px;
-    animation: pulse 1.5s infinite ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    /* 确保只占整体1/8位置 */
+    transform: scale(0.75);
+    border-radius: 30px; /* 添加圆角效果，值为高度的一半 */
 }
 
-.voice-text {
-    color: white;
-    font-size: 18px;
+.voice-wave-container {
+    width: 100%;
+    height: 30px; /* 减小高度 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 确保波形条在容器中居中显示 */
+    margin: 0 auto;
+    border-radius: 15px; /* 添加左右圆角效果 */
+    overflow: hidden; /* 确保内容不超出圆角边界 */
+}
+
+.voice-wave-bar {
+    width: 4px; /* 减小宽度以适应更多波形条 */
+    height: 15px; /* 保持默认高度 */
+    background-color: white;
+    margin: 0 1px; /* 保持间距 */
+    border-radius: 2px; /* 调整圆角使两端呈现圆弧状 */
+    flex: 1; /* 使波形条均匀分布 */
+    max-width: 6px; /* 设置最大宽度 */
+}
+
+@keyframes wave {
+    0% { 
+        height: 15px; 
+        transform: scaleY(1);
+    }
+    50% { 
+        height: 15px; 
+        transform: scaleY(0.3);
+    }
+    100% { 
+        height: 15px; 
+        transform: scaleY(1);
+    }
+}
+
+.voice-text-status {
+    color: #22C7A3;
+    font-size: 14px;
     font-weight: 500;
+    text-align: center;
+}
+
+/* 上滑取消提示 */
+.swipe-cancel {
+    color: white;
+    font-size: 14px;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+/* 取消发送状态 */
+.cancel-send-container {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.trash-icon {
+    top:5px;
+    width: 60px; /* 减小宽度 */
+    height: 60px; /* 减小高度，保持比例 */
+    border-radius: 100%;
+    background-color: #ff3b30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    /* 确保只占整体1/8位置 */
+    transform: scale(0.75);
+}
+
+.trash-icon span {
+    color: white;
+    font-size: 20px;
 }
 
 /* 聊天容器样式 */
@@ -401,11 +548,15 @@
 }
 </style>
 
-<script type="text/javascript"  src="client.js"></script>
+<script type="text/javascript"  src="chat-client.js"></script>
 <!-- 移除对外部client.js的引用 -->
 <script type="text/javascript" src="http://cdn.sockjs.org/sockjs-0.3.4.js"></script>
 <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
 <script type="text/javascript" src="ws-client.js"></script>
+<script type="text/javascript" src="asr/recorder-core.js"></script>
+<script type="text/javascript" src="asr/wav.js"></script>
+<script type="text/javascript" src="asr/pcm.js"></script>
+
 
 <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
@@ -415,6 +566,8 @@
         let audioChunks = [];
         let recognitionInterval = null;
         let currentInputMode = 'text'; // 默认为文本输入模式
+        let touchStartY = 0; // 触摸开始的Y坐标
+        let isCancelling = false; // 是否正在取消发送
         
         console.log('脚本开始加载...');
         // 初始化页面
@@ -428,14 +581,66 @@
             // 设置发送按钮点击事件
             document.getElementById('send-button').addEventListener('click', sendMessage);
             
-            // 设置语音按钮点击事件
-            document.getElementById('voice-button').addEventListener('click', function() {
+            // 设置切换到语音模式按钮点击事件
+            document.getElementById('switch-to-voice-button').addEventListener('click', function() {
+                switchInputMode('voice');
+            });
+            
+            // 设置切换到文本模式按钮点击事件
+            document.getElementById('switch-to-text-button').addEventListener('click', function() {
+                switchInputMode('text');
+            });
+            
+            // 设置语音输入容器的触摸事件
+            const voiceText = document.getElementById('voice-text');
+            
+            // 按住说话
+            voiceText.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                touchStartY = e.touches[0].clientY;
+                startVoiceRecognition();
+            });
+            
+            // 上滑取消
+            voiceText.addEventListener('touchmove', function(e) {
                 if (isRecording) {
-                    stopVoiceRecognition();
-                } else {
-                    switchInputMode('voice');
+                    const currentY = e.touches[0].clientY;
+                    const diffY = touchStartY - currentY;
+                    
+                    // 如果上滑超过50像素，显示取消状态
+                    if (diffY > 50 && !isCancelling) {
+                        isCancelling = true;
+                        document.getElementById('voice-recognition').style.display = 'flex';
+                        document.getElementById('cancel-send-container').style.display = 'flex';
+                        document.querySelector('.voice-text-status').style.display = 'none';
+                        document.querySelector('.swipe-cancel').style.display = 'none';
+                        document.querySelector('.voice-wave').style.display = 'none';
+                    } else if (diffY <= 50 && isCancelling) {
+                        isCancelling = false;
+                        document.getElementById('cancel-send-container').style.display = 'none';
+                        document.querySelector('.voice-text-status').style.display = 'block';
+                        document.querySelector('.swipe-cancel').style.display = 'block';
+                        document.querySelector('.voice-wave').style.display = 'flex';
+                    }
                 }
             });
+            
+            // 松开发送或取消
+            voiceText.addEventListener('touchend', function(e) {
+                if (isRecording) {
+                    if (isCancelling) {
+                        // 取消发送
+                        cancelVoiceRecognition();
+                    } else {
+                        // 停止录音并发送
+                        stopVoiceRecognition(true);
+                    }
+                    isCancelling = false;
+                }
+            });
+            
+            // 初始化输入模式
+            switchInputMode('text');
 
             // 确保在页面完全加载后再调用load函数
             console.log('延迟调用load()函数...');
@@ -463,7 +668,6 @@
         initPage();
         
         // 切换输入模式
-        // 切换输入模式
         function switchInputMode(mode) {
             // 如果当前已经是目标模式，不做任何操作
             if (currentInputMode === mode) return;
@@ -471,30 +675,21 @@
             currentInputMode = mode;
             
             if (mode === 'voice') {
-                // 切换到语音模式前先检查麦克风权限
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(() => {
-                        // 麦克风权限获取成功，切换到语音模式
-                        document.getElementById('text-input').style.display = 'none';
-                        document.getElementById('voice-button').classList.add('active');
-                        document.getElementById('voice-button').style.color = '#4CD964';
-                        startVoiceRecognition();
-                    })
-                    .catch(error => {
-                        // 麦克风权限获取失败，保持文本模式
-                        console.error("获取麦克风权限失败:", error);
-                        alert("无法访问麦克风，请检查权限设置");
-                        currentInputMode = 'text'; // 重置为文本模式
-                    });
+                // 切换到语音模式
+                document.getElementById('text-input-box').style.display = 'none';
+                document.getElementById('voice-input-container').style.display = 'flex';
+                start();
             } else {
                 // 切换到文本模式
-                document.getElementById('text-input').style.display = 'block';
-                document.getElementById('voice-button').classList.remove('active');
-                document.getElementById('voice-button').style.color = '';
+                document.getElementById('text-input-box').style.display = 'flex';
+                document.getElementById('voice-input-container').style.display = 'none';
+                // 清空文本输入框
+                document.getElementById('text-input').value = '';
                 // 如果正在录音，停止录音
                 if (isRecording) {
-                    stopVoiceRecognition();
+                    stopVoiceRecognition(false);
                 }
+                stop("text");
             }
         }
         
@@ -535,65 +730,51 @@
                 textInput.value = '';
             }
         }
+        
         // 开始语音识别
         async function startVoiceRecognition() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    audioChunks.push(event.data);
-                };
-                
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    await sendAudioToServer(audioBlob);
-                    audioChunks = [];
-                };
-                
-                // 开始录音
-                mediaRecorder.start();
-                isRecording = true;
-                
-                // 每3秒发送一次音频数据进行识别
-                recognitionInterval = setInterval(() => {
-                    if (mediaRecorder && isRecording) {
-                        mediaRecorder.stop();
-                        mediaRecorder.start();
-                    }
-                }, 500);
-                
+                isRecording = true
+                record()
                 // 显示语音识别界面
                 document.getElementById('voice-recognition').style.display = 'flex';
-                document.getElementById('voice-button').classList.add('active');
+                document.getElementById('cancel-send-container').style.display = 'none';
+                document.querySelector('.voice-text-status').style.display = 'block';
+                document.querySelector('.swipe-cancel').style.display = 'block';
+                document.querySelector('.voice-wave').style.display = 'flex';
+                
+                // 启动波形动画
+                animateWaveform();
+                
+                // 波形动画函数
+                function animateWaveform() {
+                    if (!isRecording) return;
+                    
+                    // 更新波形条的高度
+                    const bars = document.querySelectorAll('.voice-wave-bar');
+                    const totalBars = bars.length;
+                    const middleIndex = Math.floor(totalBars / 2);
+                    
+                    bars.forEach((bar, index) => {
+                        // 使用音量数据和一些随机值来创建更自然的波形效果
+                        const randomFactor = 0.7 + Math.random() * 0.6;
+                        
+                        // 计算与中间位置的距离，用于设置动画延迟
+                        // 距离中间越远，延迟越大，实现从中间向两边波动的效果
+                        const distanceFromMiddle = Math.abs(index - middleIndex);
+                        const delayFactor = distanceFromMiddle * 0.05; // 延迟因子
+                        
+                        // 设置波形条的高度和动画
+                        bar.style.height = '15px';
+                        bar.style.animation = `wave 1.5s ease-in-out ${delayFactor}s infinite`;
+                    });
+                    
+                    // 循环动画
+                    requestAnimationFrame(animateWaveform);
+                }
                 
             } catch (error) {
                 console.error("获取麦克风权限失败:", error);
-                alert("无法访问麦克风，请检查权限设置");
-                
-                // 修复：当麦克风访问失败时，切回文本模式
-                switchInputMode('text');
-                
-                // 重置语音按钮状态
-                document.getElementById('voice-button').classList.remove('active');
-                document.getElementById('voice-button').style.color = '';
-            }
-        }
-        
-        // 停止语音识别
-        function stopVoiceRecognition() {
-            if (mediaRecorder && isRecording) {
-                clearInterval(recognitionInterval);
-                mediaRecorder.stop();
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                mediaRecorder = null;
-                isRecording = false;
-                
-                // 隐藏语音识别界面
-                document.getElementById('voice-recognition').style.display = 'none';
-                document.getElementById('voice-button').classList.remove('active');
             }
         }
         
@@ -628,7 +809,56 @@
                 console.error("发送音频数据失败:", error);
             }
         }
+        
+        // 停止语音识别
+        function stopVoiceRecognition(sendResult) {
+            if (!isRecording) return;
+            isRecording = false;
+            
+            // 重置波形条样式
+            const bars = document.querySelectorAll('.voice-wave-bar');
+            bars.forEach(bar => {
+                bar.style.height = '15px';
+                bar.style.transform = 'scaleY(1)';
+                bar.style.animation = 'none';
+            });
+            
+            // 隐藏语音识别界面
+            document.getElementById('voice-recognition').style.display = 'none';
+            
+            // 如果需要发送结果
+            if (sendResult) {
+                const textInput = document.getElementById('text-input');
+                console.info("ASR 识别内容:", textInput.textContent);
+                if (textInput.value.trim() !== '') {
+                    sendMessage();
+                    stop("voice");
+                }
+            }
+        }
+        
+        // 取消语音识别
+        function cancelVoiceRecognition() {
+            if (!isRecording) return;
+            isRecording = false;
+            
+            // 重置波形条样式
+            const bars = document.querySelectorAll('.voice-wave-bar');
+            bars.forEach(bar => {
+                bar.style.height = '15px';
+                bar.style.transform = 'scaleY(1)';
+                bar.style.animation = 'none';
+            });
+            
+            // 隐藏语音识别界面
+            document.getElementById('voice-recognition').style.display = 'none';
+            
+            // 清空输入框
+            document.getElementById('text-input').value = '';
+        }
     });
 </script>
+<script type="text/javascript" src="asr/wsconnecter.js"></script>
+<script type="text/javascript" src="asr/main.js"></script>
 </body>
 </html>
